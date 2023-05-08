@@ -163,7 +163,9 @@ def model_finetune(model, model_optimizer, val_dl, config, device, training_mode
 
     for data, labels, aug1, data_f, aug1_f in val_dl:
         # print('Fine-tuning: {} of target samples'.format(labels.shape[0]))
+        num_classes = len(np.unique(labels))
         data, labels = data.float().to(device), labels.long().to(device)
+
         data_f = data_f.float().to(device)
         aug1 = aug1.float().to(device)
         aug1_f = aug1_f.float().to(device)
@@ -196,14 +198,19 @@ def model_finetune(model, model_optimizer, val_dl, config, device, training_mode
         loss = loss_p + l_TF + lam*(loss_t + loss_f)
 
         acc_bs = labels.eq(predictions.detach().argmax(dim=1)).float().mean()
-        onehot_label = F.one_hot(labels)
+        onehot_label = F.one_hot(labels, num_classes=num_classes)
+        # print(onehot_label)
+
+        onehot_label_numpy = onehot_label.detach().cpu().numpy()
         pred_numpy = predictions.detach().cpu().numpy()
 
         try:
             auc_bs = roc_auc_score(onehot_label.detach().cpu().numpy(), pred_numpy, average="macro", multi_class="ovr" )
         except:
             auc_bs = np.float(0)
-        prc_bs = average_precision_score(onehot_label.detach().cpu().numpy(), pred_numpy)
+
+        # print(onehot_label_numpy.shape, pred_numpy.shape)
+        prc_bs = average_precision_score(onehot_label_numpy, pred_numpy)
 
         total_acc.append(acc_bs)
         total_auc.append(auc_bs)
@@ -254,6 +261,10 @@ def model_test(model,  test_dl, config,  device, training_mode, classifier=None,
     with torch.no_grad():
         labels_numpy_all, pred_numpy_all = np.zeros(1), np.zeros(1)
         for data, labels, _,data_f, _ in test_dl:
+
+            num_classes = len(np.unique(labels))
+            # print(np.unique(labels))
+
             data, labels = data.float().to(device), labels.long().to(device)
             data_f = data_f.float().to(device)
 
@@ -266,7 +277,8 @@ def model_test(model,  test_dl, config,  device, training_mode, classifier=None,
 
             loss = criterion(predictions_test, labels)
             acc_bs = labels.eq(predictions_test.detach().argmax(dim=1)).float().mean()
-            onehot_label = F.one_hot(labels)
+            onehot_label = F.one_hot(labels, num_classes=num_classes)
+            onehot_label_numpy = onehot_label.detach().cpu().numpy()
             pred_numpy = predictions_test.detach().cpu().numpy()
             labels_numpy = labels.detach().cpu().numpy()
             try:
@@ -274,7 +286,7 @@ def model_test(model,  test_dl, config,  device, training_mode, classifier=None,
                                    average="macro", multi_class="ovr")
             except:
                 auc_bs = np.float(0)
-            prc_bs = average_precision_score(onehot_label.detach().cpu().numpy(), pred_numpy, average="macro")
+            prc_bs = average_precision_score(onehot_label_numpy, pred_numpy, average="macro")
             pred_numpy = np.argmax(pred_numpy, axis=1)
 
             total_acc.append(acc_bs)

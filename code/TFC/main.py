@@ -38,11 +38,13 @@ parser.add_argument('--home_path', default=home_dir, type=str,
                     help='Project home directory')
 args, unknown = parser.parse_known_args()
 
-with_gpu = torch.cuda.is_available()
-if with_gpu:
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
+# with_gpu = torch.cuda.is_available()
+# if with_gpu:
+#     device = torch.device("cuda")
+# else:
+#     device = torch.device("cpu")
+
+device = torch.device("mps")
 print('We are using %s now.' %device)
 
 pretrain_dataset = args.pretrain_dataset
@@ -89,7 +91,7 @@ logger.debug("=" * 45)
 # Load datasets
 sourcedata_path = f"../../datasets/{pretrain_dataset}"
 targetdata_path = f"../../datasets/{targetdata}"
-subset = True  # if subset= true, use a subset for debugging.
+subset = False  # if subset= true, use a subset for debugging.
 train_dl, valid_dl, test_dl = data_generator(sourcedata_path, targetdata_path, configs, training_mode, subset = subset)
 logger.debug("Data loaded ...")
 
